@@ -5,6 +5,7 @@
 #include <QTcpSocket>
 #include <QTimer>
 #include <QAbstractSocket>
+#include <windows.h>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -29,9 +30,14 @@ private slots:
     void sendMetrics();
 
 private:
+    ULONGLONG idle, kernel, user;
+    ULONGLONG lastIdleTime;
+    ULONGLONG lastKernelTime;
+    ULONGLONG lastUserTime;
     void log(const QString &message);
     void setUIEnabled(bool connected);
-
+    int getCpuUsage();
+    int getRamUsageMB();
     Ui::MainWindow *ui;
     QTcpSocket *socket;
     QTimer *sendTimer;

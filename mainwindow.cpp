@@ -1,3 +1,7 @@
+#define NOMINMAX
+#define WIN32_LEAD_AND_MEAN
+#include <windows.h>
+
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include <QString>
@@ -6,7 +10,7 @@
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QByteArray>
-#include <QRandomGenerator>
+//#include <QRandomGenerator>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -90,8 +94,8 @@ void MainWindow::sendMetrics(){
     if(socket->state() != QAbstractSocket::ConnectedState)  return;
 
 
-    int cpu = QRandomGenerator::global()->bounded(0, 101);
-    int ram = QRandomGenerator::global()->bounded(512, 8192);
+    int cpu = getCpuUsage();
+    int ram = getRamUsageMB();
     // ساخت پیام JSON
     QJsonObject obj;
     obj["agent"] = ui->lineEdit_agentName->text();
@@ -122,6 +126,43 @@ void MainWindow::setUIEnabled(bool connected){
     ui->lineEdit_serverIP->setEnabled(!connected);
     ui->spinBox_serverPort->setEnabled(!connected);
     ui->lineEdit_agentName->setEnabled(!connected);
+}
+
+int MainWindow::getCpuUsage()
+{
+    FILETIME idleTime, kernelTime, userTime;
+    if(!GetSystemTimes(&idleTime, &kernelTime, &userTime)) return 0;
+
+    ULONGLONG idle = ( static_cast<ULONGLONG>(idleTime.dwHighDateTime) << 32 ) | idleTime.dwLowDateTime;
+    ULONGLONG kernel = (static_cast<ULONGLONG>(kernelTime.dwHighDateTime) << 32) | kernelTime.dwLowDateTime;
+    ULONGLONG user = (static_cast<ULONGLONG>(userTime.dwHighDateTime) << 32 ) | userTime.dwLowDateTime;
+
+    if (lastIdleTime == 0){
+        lastIdleTime = idle;
+        lastKernelTime = kernel;
+        lastUserTime = user;
+        return 0;
+    }
+
+    ULONGLONG idleDiff = idle - lastIdleTime;
+    ULONGLONG totalDiff = (kernel - lastKernelTime) + (user - lastUserTime);
+
+    lastIdleTime = idle;
+    lastKernelTime = kernel;
+    lastUserTime = user;
+
+    if(totalDiff == 0) return 0;
+    return static_cast<int>((totalDiff - idleDiff) * 100 / totalDiff);
+}
+
+int MainWindow::getRamUsageMB()
+{
+    MEMORYSTATUSEX memInfo;
+    memInfo.dwLength = sizeof(MEMORYSTATUSEX);
+    if (!GlobalMemoryStatusEx(&memInfo))  return 0;
+
+    ULONGLONG usedBytes = memInfo.ullTotalPhys - memInfo.ullAvailPhys;
+    return static_cast<int>(usedBytes / (1024 * 1024));
 }
 
 MainWindow::~MainWindow()
