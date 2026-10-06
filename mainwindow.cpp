@@ -110,7 +110,7 @@ void MainWindow::sendMetrics(){
     socket->write(data);
     socket->flush();
 
-    log(QString("sent -> CPU: %1%%, RAM: %2 MB").arg(cpu).arg(ram));
+    log(QString("sent -> CPU: %1 %, RAM: %2 MB").arg(cpu).arg(ram));
 }
 
 void MainWindow::log(const QString &message){
