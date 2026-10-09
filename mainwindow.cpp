@@ -104,11 +104,17 @@ void MainWindow::sendMetrics(){
 
     int cpu = getCpuUsage();
     int ram = getRamUsageMB();
+    int ramTotal = getRamTotalMB();
+    int disk = getDiskUsageGB();
+    int diskTotal = getDiskTotalGB();
     // ساخت پیام JSON
     QJsonObject obj;
     obj["agent"] = ui->lineEdit_agentName->text();
     obj["cpu"] = cpu;
     obj["ram"] = ram;
+    obj["ramTotal"] = ramTotal;
+    obj["disk"] = disk;
+    obj["diskTotal"] = diskTotal;
     obj["timestamp"] = QDateTime::currentDateTime().toString(Qt::ISODate);
 
     QJsonDocument doc (obj);
@@ -118,7 +124,11 @@ void MainWindow::sendMetrics(){
     socket->write(data);
     socket->flush();
 
-    log(QString("sent -> CPU: %1 %, RAM: %2 MB").arg(cpu).arg(ram));
+    int ramPercent = (ramTotal > 0) ? (ram * 100 / ramTotal) : 0;
+    int diskPercent = (diskTotal > 0) ? (disk * 100 / diskTotal) : 0;
+
+    log(QString("sent -> CPU: %1 %, RAM: %2 MB (%3 %), Disk: %4 GB (%5 %)")
+            .arg(cpu).arg(ram).arg(ramPercent).arg(disk).arg(diskPercent));
 }
 
 void MainWindow::log(const QString &message){
@@ -171,6 +181,32 @@ int MainWindow::getRamUsageMB()
 
     ULONGLONG usedBytes = memInfo.ullTotalPhys - memInfo.ullAvailPhys;
     return static_cast<int>(usedBytes / (1024 * 1024));
+}
+int MainWindow::getRamTotalMB()
+{
+    MEMORYSTATUSEX memInfo;
+    memInfo.dwLength = sizeof(MEMORYSTATUSEX);
+    if(!GlobalMemoryStatusEx(&memInfo)) return 0;
+
+    return static_cast<int>(memInfo.ullTotalPhys / (1024 * 1024));
+}
+
+int MainWindow::getDiskUsageGB()
+{
+    ULARGE_INTEGER freeBytes, totalBytes, totalFreeBytes;
+    if (!GetDiskFreeSpaceExA("C:\\", &freeBytes, &totalBytes, &totalFreeBytes)) {
+        return 0;
+    }
+    ULONGLONG usedBytes = totalBytes.QuadPart - freeBytes.QuadPart;
+    return static_cast<int>(usedBytes / (1024ULL * 1024ULL * 1024ULL));
+}
+int MainWindow::getDiskTotalGB()
+{
+    ULARGE_INTEGER freeBytes, totalBytes, totalFreeBytes;
+    if(!GetDiskFreeSpaceExA("C:\\", &freeBytes, &totalBytes, &totalFreeBytes )) {
+        return 0;
+    }
+    return static_cast<int>(totalBytes.QuadPart / (1024ULL * 1024ULL * 1024ULL));
 }
 
 QString MainWindow::getMacBasedName()

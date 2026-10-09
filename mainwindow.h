@@ -42,6 +42,9 @@ private:
     void setUIEnabled(bool connected);
     int getCpuUsage();
     int getRamUsageMB();
+    int getRamTotalMB();
+    int getDiskUsageGB();
+    int getDiskTotalGB();
     QString getMacBasedName();
     void loadSettings();
     void saveSettings();
