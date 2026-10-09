@@ -6,6 +6,7 @@
 #include <QTimer>
 #include <QAbstractSocket>
 #include <windows.h>
+#include <QCloseEvent>
 
 QT_BEGIN_NAMESPACE
 namespace Ui {
@@ -29,6 +30,9 @@ private slots:
     void onSocketError(QAbstractSocket::SocketError error);
     void sendMetrics();
 
+protected:
+    void closeEvent(QCloseEvent *event) override;
+
 private:
     ULONGLONG idle, kernel, user;
     ULONGLONG lastIdleTime;
@@ -38,6 +42,9 @@ private:
     void setUIEnabled(bool connected);
     int getCpuUsage();
     int getRamUsageMB();
+    QString getMacBasedName();
+    void loadSettings();
+    void saveSettings();
     Ui::MainWindow *ui;
     QTcpSocket *socket;
     QTimer *sendTimer;

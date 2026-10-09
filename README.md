@@ -19,6 +19,8 @@ Built with **Qt6** and **C++17**.
 - Timestamped activity log
 - Manual Connect / Disconnect control
 - Agent name and server address are configurable
+- Persistent configuration (saves IP, port, and agent name)
+- Auto-generated agent name from MAC address on first run
 
 
 ## How It Works
@@ -81,7 +83,8 @@ cmake --build .
 - [x] Real CPU/RAM metrics via Windows API
 - [x] JSON-formatted packets
 - [x] Timestamped activity log
-- [ ] Persistent configuration (save IP/port/name)
+- [X] Persistent configuration (save IP/port/name)
+- [x] Auto-generate agent name from MAC address
 - [ ] Auto-reconnect on connection loss
 - [ ] Cross-platform support (Linux/macOS)
 - [ ] Configurable send interval

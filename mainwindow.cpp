@@ -10,6 +10,8 @@
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QByteArray>
+#include <QNetworkInterface>
+#include <QSettings>
 //#include <QRandomGenerator>
 
 MainWindow::MainWindow(QWidget *parent)
@@ -20,6 +22,12 @@ MainWindow::MainWindow(QWidget *parent)
 
     // ساخت سوکت
     socket = new QTcpSocket(this);
+
+    loadSettings();
+
+    connect(ui->lineEdit_serverIP, &QLineEdit::textChanged, this, &MainWindow::saveSettings);
+    connect(ui->spinBox_serverPort, &QSpinBox::textChanged, this, &MainWindow::saveSettings);
+    connect(ui->lineEdit_agentName, &QLineEdit::textChanged, this, &MainWindow::saveSettings);
 
     // ساخت تایمر برای ارسال دوره ای
     sendTimer = new QTimer(this);
@@ -163,6 +171,51 @@ int MainWindow::getRamUsageMB()
 
     ULONGLONG usedBytes = memInfo.ullTotalPhys - memInfo.ullAvailPhys;
     return static_cast<int>(usedBytes / (1024 * 1024));
+}
+
+QString MainWindow::getMacBasedName()
+{
+    const auto interfaces = QNetworkInterface::allInterfaces();
+    for(const auto &iface : interfaces) {                         // فیلتر: فقط interface های معتبر و غیر loopback
+        if(iface.flags().testFlag(QNetworkInterface::IsUp) &&
+            iface.flags().testFlag(QNetworkInterface::IsRunning) &&
+            !iface.flags().testAnyFlags(QNetworkInterface::IsLoopBack) &&
+            !iface.hardwareAddress().isEmpty())
+        {
+            QString mac = iface.hardwareAddress();
+            mac.remove(':');                        // تبدیل "AA:BB:CC:DD:EE:FF" به "AABBCC"
+            mac.remove('-');
+            return "agent-" + mac.right(8);
+        }
+    }
+    return "agent-unknown";
+}
+void MainWindow::loadSettings()
+{
+    QSettings settings("SafaBanak", "ServerAgent");
+    ui->lineEdit_serverIP->setText(settings.value("serverIP", "127.0.0.1").toString());
+    ui->spinBox_serverPort->setValue(settings.value("serverPort", 12345).toInt());
+    //اگر اسم ذخیره شده داشت همونو بزار وگرنه از MAC بساز
+    //ui->lineEdit_agentName->setText(settings.value("agentName", getMacBasedName()).toString());
+
+    QString defaultName = settings.value("agentName").toString();
+    if (defaultName.isEmpty()) {
+        defaultName = getMacBasedName();
+    }
+    ui->lineEdit_agentName->setText(defaultName);
+
+}
+void MainWindow::saveSettings()
+{
+    QSettings settings("SafaBanak", "ServerAgent");
+    settings.setValue("serverIP", ui->lineEdit_serverIP->text());
+    settings.setValue("serverPort", ui->spinBox_serverPort->value());
+    settings.setValue("agentName", ui->lineEdit_agentName->text());
+}
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    saveSettings();
+    QMainWindow::closeEvent(event);
 }
 
 MainWindow::~MainWindow()
